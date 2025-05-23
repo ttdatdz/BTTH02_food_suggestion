@@ -5,27 +5,6 @@ function FoodSuggestion() {
     const [suggestions, setSuggestions] = useState([]);
     const [error, setError] = useState('');
 
-    // const getSuggestions = async () => {
-    //     setError('');
-    //     setSuggestions([]);
-
-    //     try {
-    //         const res = await fetch('http://localhost:3000/suggest', {
-    //             method: 'POST',
-    //             headers: { 'Content-Type': 'application/json' },
-    //             body: JSON.stringify({
-    //                 ingredients: ingredients.split(',').map(i => i.trim())
-    //             })
-    //         });
-
-    //         if (!res.ok) throw new Error('Lỗi kết nối server');
-
-    //         const data = await res.json();
-    //         setSuggestions(data.suggestions);
-    //     } catch (err) {
-    //         setError(err.message);
-    //     }
-    // };
     const getSuggestions = async () => {
         console.log("Đang gửi request..."); // Debug 1
         const ingredientsList = ingredients.split(',').map(i => i.trim());
