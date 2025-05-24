@@ -7,16 +7,21 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+// Hàm bỏ dấu tiếng Việt
+const removeDiacritics = (str) => {
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+};
+
 app.post('/suggest', (req, res) => {
     if (!req.body.ingredients || !Array.isArray(req.body.ingredients)) {
         return res.status(400).send({ error: "Invalid ingredients format" });
     }
 
     const ingredientsStr = req.body.ingredients
-        .map(i => `'${i.trim().toLowerCase()}'`)
+        .map(i => `'${removeDiacritics(i.trim())}'`)
         .join(',');
 
-    const cmd = `"C:\\Program Files\\swipl\\bin\\swipl.exe" -s recipes.pl -g "findall(Formatted, (suggest_recipe_with_ingredients([${ingredientsStr}], R-I), format_recipe_output(R-I, Formatted)), List), writeln(List)." -t halt`;
+    const cmd = `"C:\\Program Files\\swipl\\bin\\swipl.exe" -s recipes.pl -g "suggest_all_recipes([${ingredientsStr}], Recipes), maplist(format_recipe_output, Recipes, FormattedList), writeln(FormattedList)." -t halt`;
 
     console.log("Executing command:", cmd);
 
