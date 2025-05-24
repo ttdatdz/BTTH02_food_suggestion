@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import "./FoodSuggestion.css";
 
+// Hàm bỏ dấu tiếng Việt
+const removeDiacritics = (str) => {
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+};
+
 function FoodSuggestion() {
     const [ingredients, setIngredients] = useState('');
     const [suggestions, setSuggestions] = useState([]);
@@ -14,7 +19,7 @@ function FoodSuggestion() {
 
         try {
             const ingredientsList = ingredients.split(',')
-                .map(i => i.trim().toLowerCase())
+                .map(i => removeDiacritics(i.trim()))
                 .filter(i => i.length > 0);
 
             const response = await fetch('http://localhost:3000/suggest', {
@@ -44,14 +49,14 @@ function FoodSuggestion() {
         <div className="food-suggestion-container">
             <div className="header-section">
                 <h1 className="app-title">🍳 Food Suggestion App</h1>
-                <p className="app-subtitle">Nhập nguyên liệu bạn có và nhận gợi ý món ăn</p>
+                <p className="app-subtitle">Nhập nguyên liệu bạn có và nhận gợi ý món ăn (có dấu hoặc không dấu)</p>
             </div>
 
             <div className="input-section">
                 <input
                     value={ingredients}
                     onChange={e => setIngredients(e.target.value)}
-                    placeholder="Nhập nguyên liệu (cách nhau bằng dấu phẩy), ví dụ: trứng, hành, cà rốt"
+                    placeholder="Nhập nguyên liệu (cách nhau bằng dấu phẩy), ví dụ: trứng, hành hoặc trung, hanh"
                     className="ingredient-input"
                 />
                 <div className="button-group">
