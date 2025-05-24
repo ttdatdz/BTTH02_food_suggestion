@@ -7,43 +7,60 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-
 app.post('/suggest', (req, res) => {
-    // Thêm bước validate và chuẩn hóa input
     if (!req.body.ingredients || !Array.isArray(req.body.ingredients)) {
         return res.status(400).send({ error: "Invalid ingredients format" });
     }
 
-    // Chuẩn hóa nguyên liệu - bỏ khoảng trắng và chuyển thành chữ thường
-    const normalizedIngredients = req.body.ingredients
-        .map(i => i.trim().toLowerCase())
-        .filter(i => i.length > 0);
+    const ingredientsStr = req.body.ingredients
+        .map(i => `'${i.trim().toLowerCase()}'`)
+        .join(',');
 
-    // Log để debug
-    console.log("Received ingredients:", normalizedIngredients);
+    const cmd = `"C:\\Program Files\\swipl\\bin\\swipl.exe" -s recipes.pl -g "findall(Formatted, (suggest_recipe_with_ingredients([${ingredientsStr}], R-I), format_recipe_output(R-I, Formatted)), List), writeln(List)." -t halt`;
 
-    // Tạo chuỗi truy vấn Prolog an toàn hơn
-    const ingredientsStr = normalizedIngredients.map(i => `'${i}'`).join(',');
-    const cmd = `"C:\\Program Files\\swipl\\bin\\swipl.exe" -s recipes.pl -g "findall(R, suggest_recipe([${ingredientsStr}], R), List), writeln(List)." -t halt`;
+    console.log("Executing command:", cmd);
 
-    console.log("Executing command:", cmd); // Log command để debug
-
-    exec(cmd, (err, stdout, stderr) => {
+    exec(cmd, { encoding: 'utf8' }, (err, stdout, stderr) => {
         if (err) {
-            console.error("ProLog error:", stderr);
+            console.error("Prolog error:", stderr);
             return res.status(500).send({ error: err.message });
         }
 
-        console.log("ProLog output:", stdout); // Log output từ Prolog
+        try {
+            console.log("Raw output:", stdout);
 
-        const suggestions = stdout
-            .trim()
-            .replace(/[\[\]'\n\r]/g, '')
-            .split(',')
-            .map(s => s.trim())
-            .filter(Boolean);
+            if (!stdout || stdout.trim() === '[]') {
+                return res.send({ suggestions: [] });
+            }
 
-        res.send({ suggestions });
+            const raw = stdout.trim()
+                .replace(/^\[|\]$/g, '')
+                .replace(/\s+/g, ' ');
+
+            const suggestions = [];
+            const pattern = /'([^']+)'-\[([^\]]*)\]/g;
+
+            let match;
+            while ((match = pattern.exec(raw)) !== null) {
+                const ingredients = match[2].split(',')
+                    .map(i => i.trim().replace(/'/g, ''))
+                    .filter(i => i.length > 0);
+
+                suggestions.push({
+                    name: match[1].trim(),
+                    ingredients: ingredients
+                });
+            }
+
+            console.log("Parsed suggestions:", suggestions);
+            res.send({ suggestions });
+        } catch (parseError) {
+            console.error("Parse error:", parseError);
+            res.status(500).send({
+                error: "Lỗi phân tích kết quả",
+                rawOutput: stdout
+            });
+        }
     });
 });
 
